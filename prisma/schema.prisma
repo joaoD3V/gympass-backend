@@ -1,0 +1,78 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// RBAC -> Role Based Authentication Control
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+// Primeira letra maíuscula e nunca no plural
+//  @@map - Alterar o nome da tabela usando lower case e plural
+model User {
+  id            String   @id @default(uuid())
+  name          String
+  email         String   @unique
+  password_hash String
+  role          Role     @default(MEMBER)
+  created_at    DateTime @default(now())
+
+  checkIns CheckIn[] //Formato camelcase para trabalhar com JS. Não será salvo no BD
+
+  @@map("users")
+}
+
+// Tudo o que for salvo no banco trabalhar com underline. O que não for salvo, com camelcase
+
+// Podemos adotar a estratégia de trocar o boolean por uma Date para saber
+// quando que um determinado valor estará como verdadeiro, assim conseguimos
+// obter o valor de um boolean e de um Date
+
+// O usuário faz check in então precisa ter um user_id no check in -> user User
+// O check in está associado a uma academia
+model CheckIn {
+  id           String    @id @default(uuid())
+  created_at   DateTime  @default(now())
+  validated_at DateTime?
+
+  user    User   @relation(fields: [user_id], references: [id])
+  user_id String
+
+  gym    Gym    @relation(fields: [gym_id], references: [id])
+  gym_id String
+
+  @@map("check_ins")
+}
+
+model Gym {
+  id          String  @id @default(uuid())
+  title       String
+  description String?
+  phone       String?
+  latitude    Decimal
+  longitude   Decimal
+
+  checkIns CheckIn[]
+
+  @@map("gyms")
+}
+
+// 1-1 
+// Um dado de um tabela se relaciona com um dado de outra tabela apenas
+// Geralmente é criado apenas para separar em tabelas de uma forma semântica, mas poderiam ficar em uma única tabela
+
+// 1-N
+// Uma informação que está em uma tabela pode se relacionar com vários registros de outra tabela
+// Exemplo: Um usuário pode fazer vários check ins
+
+// N-N
+// Um registro de uma tabela pode estar relacionado com vários registros de outra tabela e vice-versa
